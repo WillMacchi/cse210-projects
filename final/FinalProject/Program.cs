@@ -1,14 +1,29 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 
 class Program
 {
-    static List<Transaction> transactions = new List<Transaction>();
-    static int nextId = 1;
-
     static void Main(string[] args)
     {
+        FinanceTracker tracker = new FinanceTracker();
+        FileManager fileManager = new FileManager();
+
+        string transactionFile = "transactions.txt";
+        string budgetFile = "budgets.txt";
+
+        // Load existing data
+        List<Transaction> loadedTransactions = fileManager.LoadTransactions(transactionFile);
+        foreach (Transaction transaction in loadedTransactions)
+        {
+            tracker.AddTransaction(transaction);
+        }
+
+        List<BudgetCategory> loadedBudgets = fileManager.LoadBudgets(budgetFile);
+        foreach (BudgetCategory budget in loadedBudgets)
+        {
+            tracker.GetBudgets().Add(budget);
+        }
+
         bool running = true;
 
         while (running)
@@ -20,7 +35,10 @@ class Program
             Console.WriteLine("4. View Financial Summary");
             Console.WriteLine("5. Sort Transactions by Date");
             Console.WriteLine("6. Sort Transactions by Amount");
-            Console.WriteLine("7. Exit");
+            Console.WriteLine("7. Add Budget");
+            Console.WriteLine("8. Check Budgets");
+            Console.WriteLine("9. Save Data");
+            Console.WriteLine("10. Exit");
             Console.Write("Choose an option: ");
 
             string choice = Console.ReadLine();
@@ -28,37 +46,50 @@ class Program
             switch (choice)
             {
                 case "1":
-                    AddIncome();
+                    AddIncome(tracker);
                     break;
                 case "2":
-                    AddExpense();
+                    AddExpense(tracker);
                     break;
                 case "3":
-                    DisplayAllTransactions();
+                    tracker.DisplayAllTransactions();
                     break;
                 case "4":
-                    DisplaySummary();
+                    tracker.DisplaySummary();
                     break;
                 case "5":
-                    SortTransactionsByDate();
+                    tracker.SortTransactionsByDate();
                     Console.WriteLine("Transactions sorted by date.");
                     break;
                 case "6":
-                    SortTransactionsByAmount();
+                    tracker.SortTransactionsByAmount();
                     Console.WriteLine("Transactions sorted by amount.");
                     break;
                 case "7":
-                    Console.WriteLine("Goodbye!");
+                    AddBudget(tracker);
+                    break;
+                case "8":
+                    tracker.CheckBudgets();
+                    break;
+                case "9":
+                    fileManager.SaveTransactions(transactionFile, tracker.GetTransactions());
+                    fileManager.SaveBudgets(budgetFile, tracker.GetBudgets());
+                    Console.WriteLine("Data saved successfully.");
+                    break;
+                case "10":
+                    fileManager.SaveTransactions(transactionFile, tracker.GetTransactions());
+                    fileManager.SaveBudgets(budgetFile, tracker.GetBudgets());
                     running = false;
+                    Console.WriteLine("Goodbye!");
                     break;
                 default:
-                    Console.WriteLine("Invalid option. Try again.");
+                    Console.WriteLine("Invalid option.");
                     break;
             }
         }
     }
 
-    static void AddIncome()
+    static void AddIncome(FinanceTracker tracker)
     {
         Console.Write("Enter amount: ");
         decimal amount = decimal.Parse(Console.ReadLine());
@@ -72,22 +103,19 @@ class Program
         Console.Write("Enter source: ");
         string source = Console.ReadLine();
 
-        IncomeTransaction income = new IncomeTransaction(
-            nextId,
+        tracker.AddTransaction(new IncomeTransaction(
+            tracker.GetNextId(),
             DateTime.Now,
             amount,
             category,
             description,
             source
-        );
+        ));
 
-        transactions.Add(income);
-        nextId++;
-
-        Console.WriteLine("Income added successfully.");
+        Console.WriteLine("Income added.");
     }
 
-    static void AddExpense()
+    static void AddExpense(FinanceTracker tracker)
     {
         Console.Write("Enter amount: ");
         decimal amount = decimal.Parse(Console.ReadLine());
@@ -101,68 +129,27 @@ class Program
         Console.Write("Enter payment method: ");
         string paymentMethod = Console.ReadLine();
 
-        ExpenseTransaction expense = new ExpenseTransaction(
-            nextId,
+        tracker.AddTransaction(new ExpenseTransaction(
+            tracker.GetNextId(),
             DateTime.Now,
             amount,
             category,
             description,
             paymentMethod
-        );
+        ));
 
-        transactions.Add(expense);
-        nextId++;
-
-        Console.WriteLine("Expense added successfully.");
+        Console.WriteLine("Expense added.");
     }
 
-    static void DisplayAllTransactions()
+    static void AddBudget(FinanceTracker tracker)
     {
-        if (transactions.Count == 0)
-        {
-            Console.WriteLine("No transactions found.");
-            return;
-        }
+        Console.Write("Enter budget category: ");
+        string category = Console.ReadLine();
 
-        Console.WriteLine("\n--- All Transactions ---");
-        foreach (Transaction transaction in transactions)
-        {
-            Console.WriteLine(transaction.GetSummary());
-        }
-    }
+        Console.Write("Enter spending limit: ");
+        decimal limit = decimal.Parse(Console.ReadLine());
 
-    static void DisplaySummary()
-    {
-        decimal totalIncome = 0;
-        decimal totalExpenses = 0;
-
-        foreach (Transaction transaction in transactions)
-        {
-            if (transaction is IncomeTransaction)
-            {
-                totalIncome += transaction.Amount;
-            }
-            else if (transaction is ExpenseTransaction)
-            {
-                totalExpenses += transaction.Amount;
-            }
-        }
-
-        decimal balance = totalIncome - totalExpenses;
-
-        Console.WriteLine("\n--- Financial Summary ---");
-        Console.WriteLine($"Total Income:   ${totalIncome:F2}");
-        Console.WriteLine($"Total Expenses: ${totalExpenses:F2}");
-        Console.WriteLine($"Balance:        ${balance:F2}");
-    }
-
-    static void SortTransactionsByDate()
-    {
-        transactions = transactions.OrderBy(t => t.Date).ToList();
-    }
-
-    static void SortTransactionsByAmount()
-    {
-        transactions = transactions.OrderByDescending(t => t.Amount).ToList();
+        tracker.AddBudget(category, limit);
+        Console.WriteLine("Budget added.");
     }
 }

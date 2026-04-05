@@ -26,4 +26,4 @@ public abstract class Transaction
     {
         return $"{GetTransactionType()}|{Id}|{Date}|{Amount}|{Category}|{Description}";
     }
-}   
+}
